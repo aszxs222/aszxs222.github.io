@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>打字训练工具</title>
+    <meta charset="UTF-8">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        /* 统计卡片 */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* 显示文本 */
+        .sample-text {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            font-size: 1.2em;
+            line-height: 1.6;
+            font-family: monospace;
+            margin-bottom: 20px;
+            word-break: break-all;
+        }
+        
+        /* 输入区域 */
+        .input-area {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            font-size: 1.1em;
+            font-family: monospace;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            resize: vertical;
+            margin-bottom: 20px;
+        }
+        .input-area:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .input-area.correct {
+            border-color: #4caf50;
+        }
+        .input-area.wrong {
+            border-color: #f44336;
+        }
+        
+        /* 按钮 */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .next-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .reset-btn {
+            background: #ff6b6b;
+            color: white;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* 结果显示 */
+        .result {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #999;
+            font-size: 0.85em;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .typing-cursor {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⌨️ 打字训练工具</h1>
+        <p class="subtitle">提高打字速度和准确率</p>
+        
+        <!-- 统计区 -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="wpm">0</div>
+                <div class="stat-label">速度 (字/分)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="accuracy">0%</div>
+                <div class="stat-label">正确率</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="time">0s</div>
+                <div class="stat-label">用时</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total">0</div>
+                <div class="stat-label">已打字</div>
+            </div>
+        </div>
+        
+        <!-- 示例文本 -->
+        <div class="sample-text" id="sampleText">
+            点击「新题目」开始打字练习...
+        </div>
+        
+        <!-- 输入框 -->
+        <textarea 
+            id="userInput" 
+            class="input-area" 
+            placeholder="在这里打字..."
+            disabled
+        ></textarea>
+        
+        <!-- 按钮 -->
+        <div class="button-group">
+            <button class="next-btn" id="nextBtn">📝 新题目</button>
+            <button class="reset-btn" id="resetBtn">🔄 重置统计</button>
+        </div>
+        
+        <div class="footer">
+            ⚡ 实时统计正确率 · 打字速度自动计算<br>
+            💡 准确率 100% 才算完成当前题目
+        </div>
+    </div>
+    
+    <script>
+        // 题库
+        const sentences = [
+            "The quick brown fox jumps over the lazy dog.",
+            "Practice makes perfect, keep typing every day.",
+            "Programming is fun and challenging.",
+            "Type as fast as you can, accuracy matters too.",
+            "Hello world is the first program for many coders.",
+            "Learning new skills takes time and patience.",
+            "Consistency is key to mastering any skill.",
+            "Technology evolves rapidly, stay curious.",
+            "Good luck with your typing practice!",
+            "This is a sentence with many words to type.",
+            "Keep your fingers on the home row keys.",
+            "Typing speed improves with regular practice."
+        ];
+        
+        let currentSentence = "";
+        let startTime = null;
+        let isTyping = false;
+        let totalTyped = 0;
+        let totalCorrect = 0;
+        let timer = null;
+        
+        // DOM 元素
+        const sampleText = document.getElementById('sampleText');
+        const userInput = document.getElementById('userInput');
+        const nextBtn = document.getElementById('nextBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const wpmEl = document.getElementById('wpm');
+        const accuracyEl = document.getElementById('accuracy');
+        const timeEl = document.getElementById('time');
+        const totalEl = document.getElementById('total');
+        
+        // 更新统计显示
+        function updateStats() {
+            // 总字符数
+            totalEl.textContent = totalTyped;
+            
+            // 正确率
+            const accuracy = totalTyped === 0 ? 0 : (totalCorrect / totalTyped * 100);
+            accuracyEl.textContent = accuracy.toFixed(1) + '%';
+            
+            // 如果正在打字且开始时间不为空，计算 WPM 和时间
+            if (isTyping && startTime && currentSentence) {
+                const elapsed = (Date.now() - startTime) / 1000;
+                timeEl.textContent = elapsed.toFixed(1) + 's';
+                
+                // WPM: 每分字 = (已打正确字符数 / 5) / (秒数 / 60)
+                const words = totalCorrect / 5; // 假设平均每词5字符
+                const minutes = elapsed / 60;
+                const wpm = minutes > 0 ? Math.round(words / minutes) : 0;
+                wpmEl.textContent = wpm;
+            }
+        }
+        
+        // 检查输入是否正确
+        function checkInput() {
+            const inputText = userInput.value;
+            const target = currentSentence;
+            
+            if (!target) return;
+            
+            // 计算已输入的正确字符数（逐个字符比较）
+            let correctChars = 0;
+            const minLength = Math.min(inputText.length, target.length);
+            for (let i = 0; i < minLength; i++) {
+                if (inputText[i] === target[i]) {
+                    correctChars++;
+                }
+            }
+            
+            // 更新全局统计（只统计增量）
+            const newCorrect = correctChars;
+            
+            // 更新边框颜色
+            if (inputText === target.substring(0, inputText.length)) {
+                userInput.className = 'input-area correct';
+            } else {
+                userInput.className = 'input-area wrong';
+            }
+            
+            // 检查是否完成
+            if (inputText === target) {
+                // 完成当前题目
+                const elapsed = (Date.now() - startTime) / 1000;
+                const words = target.split(' ').length;
+                const wpm = elapsed > 0 ? Math.round((words / elapsed) * 60) : 0;
+                
+                // 显示完成信息
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `✅ 完成！ 速度: ${wpm} 字/分， 用时: ${elapsed.toFixed(1)} 秒`;
+                document.querySelector('.container').appendChild(resultDiv);
+                setTimeout(() => resultDiv.remove(), 3000);
+                
+                // 自动切换到下一题
+                setTimeout(() => {
+                    loadRandomSentence();
+                }, 1500);
+                
+                isTyping = false;
+                userInput.disabled = true;
+                return;
+            }
+            
+            updateStats();
+        }
+        
+        // 随机加载句子
+        function loadRandomSentence() {
+            const randomIndex = Math.floor(Math.random() * sentences.length);
+            currentSentence = sentences[randomIndex];
+            sampleText.textContent = currentSentence;
+            
+            // 重置输入框
+            userInput.value = '';
+            userInput.className = 'input-area';
+            userInput.disabled = false;
+            userInput.focus();
+            
+            // 开始计时
+            startTime = Date.now();
+            isTyping = true;
+            
+            // 重置当前题目的统计？不重置总统计，只是新题目
+            updateStats();
+        }
+        
+        // 重置所有统计
+        function resetAllStats() {
+            totalTyped = 0;
+            totalCorrect = 0;
+            isTyping = false;
+            userInput.value = '';
+            userInput.disabled = true;
+            sampleText.textContent = '点击「新题目」开始打字练习...';
+            currentSentence = '';
+            startTime = null;
+            updateStats();
+            wpmEl.textContent = '0';
+            timeEl.textContent = '0s';
+            accuracyEl.textContent = '0%';
+            totalEl.textContent = '0';
+            userInput.className = 'input-area';
+        }
+        
+        // 监听输入
+        userInput.addEventListener('input', function(e) {
+            if (!isTyping) return;
+            
+            const inputText = e.target.value;
+            const target = currentSentence;
+            
+            if (!target) return;
+            
+            // 实时更新总字符数和正确数
+            let correctChars = 0;
+            const minLength = Math.min(inputText.length, target.length);
+            for (let i = 0; i < minLength; i++) {
+                if (inputText[i] === target[i]) {
+                    correctChars++;
+                }
+            }
+            
+            // 更新统计（只记录新的正确数变化）
+            // 这里简化：每次都重新计算，但只更新显示，不重复累加
+            // 为了简单，我们只在完成时累加
+            totalTyped = inputText.length;
+            totalCorrect = correctChars;
+            
+            updateStats();
+            
+            // 检查是否完成
+            if (inputText === target) {
+                checkInput();
+            }
+        });
+        
+        // 新题目按钮
+        nextBtn.addEventListener('click', () => {
+            if (currentSentence && userInput.value !== currentSentence && userInput.value !== '') {
+                if (confirm('当前题目还没完成，确定要换一题吗？')) {
+                    loadRandomSentence();
+                }
+            } else {
+                loadRandomSentence();
+            }
+        });
+        
+        // 重置按钮
+        resetBtn.addEventListener('click', () => {
+            if (confirm('确定要重置所有统计数据吗？')) {
+                resetAllStats();
+            }
+        });
+        
+        // 初始化
+        resetAllStats();
+        
+        // 快捷键：Ctrl+Enter 下一题
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                nextBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>

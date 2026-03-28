@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>文本统计工具</title>
+    <meta charset="UTF-8">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        textarea {
+            width: 100%;
+            height: 250px;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            resize: vertical;
+            font-family: monospace;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        .reset-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .reset-btn:hover {
+            transform: translateY(-2px);
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #999;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 文本统计工具</h1>
+        <p class="subtitle">实时统计字符数、单词数、行数</p>
+        
+        <textarea id="text-input" placeholder="在这里输入或粘贴文本..."></textarea>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="char-count">0</div>
+                <div class="stat-label">总字符数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="char-no-space">0</div>
+                <div class="stat-label">不含空格</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="word-count">0</div>
+                <div class="stat-label">单词数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="line-count">0</div>
+                <div class="stat-label">行数</div>
+            </div>
+        </div>
+        
+        <button class="reset-btn" onclick="clearText()">清空文本</button>
+        
+        <div class="footer">
+            ⚡ 实时统计 · 纯本地处理 · 不上传数据
+        </div>
+    </div>
+    
+    <script>
+        const textarea = document.getElementById('text-input');
+        
+        function updateStats() {
+            const text = textarea.value;
+            
+            // 总字符数
+            document.getElementById('char-count').textContent = text.length;
+            
+            // 不含空格的字符数
+            document.getElementById('char-no-space').textContent = text.replace(/\s/g, '').length;
+            
+            // 单词数（按空白分割）
+            const words = text.trim() === '' ? [] : text.trim().split(/\s+/);
+            document.getElementById('word-count').textContent = words.length;
+            
+            // 行数
+            const lines = text === '' ? 0 : text.split('\n').length;
+            document.getElementById('line-count').textContent = lines;
+        }
+        
+        function clearText() {
+            textarea.value = '';
+            updateStats();
+        }
+        
+        textarea.addEventListener('input', updateStats);
+        updateStats();
+    </script>
+</body>
+</html>
