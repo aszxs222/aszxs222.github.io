@@ -482,7 +482,7 @@
             trackCount.textContent = `${list.length} 首歌曲`;
 
             playlistEl.innerHTML = list.map((track, index) => {
-                const isActive = track.file === (audio.src ? decodeURIComponent(audio.src.split('/').pop()) : '');
+                const isActive = track.file === (audio.src ? decodeURIComponent(audio.src.split('/').pop().replace(/\+/g, ' ')) : '');
                 return `
                 <li class="playlist-item ${isActive ? 'active' : ''}" data-index="${index}">
                     <span class="track-number">${index + 1}</span>
@@ -512,7 +512,7 @@
             if (!list.length) return;
             currentTrack = index;
             const track = list[index];
-            audio.src = track.file;
+            audio.src = encodeURIComponent(track.file);
             trackTitle.textContent = track.name;
             trackArtist.textContent = track.category || categories[currentCategoryIndex].name;
             renderPlaylist();
