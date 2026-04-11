@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的音乐 - 网易云风格</title>
+    <script src="/redirect.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #fff;
+        }
+        .navbar {
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(20px);
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+        .logo {
+            font-size: 1.5em;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .back-home { color: #e94560; text-decoration: none; }
+        .nav-links { flex: 1; display: flex; gap: 20px; }
+        .nav-links a { color: #ccc; text-decoration: none; }
+        .nav-links a.active { color: #e94560; border-bottom: 2px solid #e94560; }
+        .container { max-width: 800px; margin: 0 auto; padding: 30px; }
+        .song-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        .song-item:hover { background: rgba(255,255,255,0.1); }
+        .song-info { flex: 1; }
+        .song-name { font-weight: bold; margin-bottom: 5px; }
+        .song-artist { font-size: 0.85em; color: #888; }
+        .empty-state { text-align: center; padding: 60px; color: #888; }
+        .footer { text-align: center; margin-top: 40px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="logo">🎵 网易云风格</div>
+        <a href="/musicmanji/" class="back-home">← 返回平台选择</a>
+        <div class="nav-links">
+            <a href="/musicmanji/wy/discover.html">发现音乐</a>
+            <a href="/musicmanji/wy/my.html" class="active">我的音乐</a>
+            <a href="/musicmanji/wy/friend.html">朋友</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>❤️ 我收藏的音乐</h2>
+        <div id="favoriteList"></div>
+        <div class="footer">💡 点击搜索结果中的「❤️」即可收藏歌曲</div>
+    </div>
+
+    <script>
+        function loadFavorites() {
+            const favorites = JSON.parse(localStorage.getItem('wy_favorites') || '[]');
+            const container = document.getElementById('favoriteList');
+            
+            if (favorites.length === 0) {
+                container.innerHTML = '<div class="empty-state">🎵 暂无收藏歌曲<br>去「发现音乐」或搜索页面点击❤️收藏吧</div>';
+                return;
+            }
+            
+            container.innerHTML = favorites.map((song, idx) => `
+                <div class="song-item" onclick="playSong('${song.id}')">
+                    <div class="song-info">
+                        <div class="song-name">${song.name}</div>
+                        <div class="song-artist">${song.artist}</div>
+                    </div>
+                    <div style="color:#e94560;cursor:pointer;" onclick="removeFavorite('${song.id}', event)">🗑️ 取消收藏</div>
+                </div>
+            `).join('');
+        }
+        
+        function playSong(id) {
+            localStorage.setItem('wy_play_id', id);
+            window.location.href = '/musicmanji/wy/';
+        }
+        
+        function removeFavorite(id, event) {
+            event.stopPropagation();
+            let favorites = JSON.parse(localStorage.getItem('wy_favorites') || '[]');
+            favorites = favorites.filter(s => s.id !== id);
+            localStorage.setItem('wy_favorites', JSON.stringify(favorites));
+            loadFavorites();
+        }
+        
+        loadFavorites();
+    </script>
+</body>
+</html>
