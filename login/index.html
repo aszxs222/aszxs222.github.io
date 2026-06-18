@@ -87,8 +87,9 @@
             font-size: 1em;
             cursor: pointer;
             transition: 0.3s;
+            position: relative;
         }
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 8px 30px rgba(167, 139, 250, 0.3);
         }
@@ -97,27 +98,7 @@
             cursor: not-allowed;
             transform: none;
         }
-        .msg {
-            text-align: center;
-            margin-top: 16px;
-            padding: 10px;
-            border-radius: 10px;
-            font-size: 0.85em;
-            display: none;
-        }
-        .msg.error {
-            background: rgba(255, 0, 0, 0.1);
-            color: #f87171;
-            display: block;
-            border: 1px solid rgba(255, 0, 0, 0.15);
-        }
-        .msg.success {
-            background: rgba(0, 255, 0, 0.06);
-            color: #6ee7b7;
-            display: block;
-            border: 1px solid rgba(0, 255, 0, 0.1);
-        }
-        .loading {
+        .btn .spinner {
             display: inline-block;
             width: 18px;
             height: 18px;
@@ -126,11 +107,39 @@
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
             vertical-align: middle;
+            margin-right: 8px;
         }
         @keyframes spin {
             to {
                 transform: rotate(360deg);
             }
+        }
+        .msg {
+            text-align: center;
+            margin-top: 16px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.85em;
+            display: none;
+            line-height: 1.4;
+        }
+        .msg.error {
+            background: rgba(255, 0, 0, 0.12);
+            color: #f87171;
+            display: block;
+            border: 1px solid rgba(255, 0, 0, 0.15);
+        }
+        .msg.success {
+            background: rgba(52, 211, 153, 0.1);
+            color: #6ee7b7;
+            display: block;
+            border: 1px solid rgba(52, 211, 153, 0.15);
+        }
+        .msg.info {
+            background: rgba(96, 165, 250, 0.1);
+            color: #93bbfc;
+            display: block;
+            border: 1px solid rgba(96, 165, 250, 0.15);
         }
         .footer {
             text-align: center;
@@ -141,6 +150,19 @@
         .footer a {
             color: #a78bfa;
             text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .cooldown-tip {
+            font-size: 0.75em;
+            color: #666;
+            text-align: center;
+            margin-top: 8px;
+            display: none;
+        }
+        .cooldown-tip.show {
+            display: block;
         }
     </style>
 </head>
@@ -158,9 +180,10 @@
             <label>密码</label>
             <input type="password" id="loginPassword" placeholder="至少6位">
         </div>
-        <button class="btn" id="loginBtn" onclick="handleLogin()">登录</button>
+        <button class="btn" id="loginBtn">登录</button>
 
         <div id="msg" class="msg"></div>
+        <div class="cooldown-tip" id="cooldownTip">⏳ 请等待 <span id="cooldownCount">60</span> 秒后再试</div>
         <div class="footer">
             还没有账户？<a href="/register/">立即注册</a>
         </div>
@@ -172,45 +195,133 @@
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const msg = document.getElementById('msg');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const cooldownTip = document.getElementById('cooldownTip');
+        const cooldownCount = document.getElementById('cooldownCount');
+
+        let isCooldown = false;
+        let cooldownTimer = null;
 
         function showMessage(text, type = 'error') {
             msg.textContent = text;
             msg.className = `msg ${type}`;
-            msg.style.display = 'block';
+        }
+
+        function hideMessage() {
+            msg.className = 'msg';
+            msg.style.display = 'none';
+        }
+
+        function setLoading(loading) {
+            if (loading) {
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = '<span class="spinner"></span> 登录中...';
+            } else {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '登录';
+            }
+        }
+
+        function startCooldown(seconds = 60) {
+            isCooldown = true;
+            loginBtn.disabled = true;
+            cooldownTip.classList.add('show');
+            let remaining = seconds;
+
+            cooldownCount.textContent = remaining;
+
+            if (cooldownTimer) clearInterval(cooldownTimer);
+            cooldownTimer = setInterval(() => {
+                remaining--;
+                cooldownCount.textContent = remaining;
+                if (remaining <= 0) {
+                    clearInterval(cooldownTimer);
+                    cooldownTimer = null;
+                    isCooldown = false;
+                    loginBtn.disabled = false;
+                    cooldownTip.classList.remove('show');
+                    showMessage('✅ 可以重新尝试登录了', 'success');
+                    setTimeout(hideMessage, 2000);
+                }
+            }, 1000);
         }
 
         async function handleLogin() {
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            const btn = document.getElementById('loginBtn');
+            // 防重复点击
+            if (loginBtn.disabled) return;
 
-            if (!email || !password) { showMessage('请填写完整', 'error'); return; }
-            if (password.length < 6) { showMessage('密码至少6位', 'error'); return; }
+            const email = loginEmail.value.trim();
+            const password = loginPassword.value;
 
-            btn.disabled = true;
-            btn.innerHTML = '<span class="loading"></span> 登录中';
+            // 清空旧消息
+            hideMessage();
 
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            // 验证输入
+            if (!email) { showMessage('📧 请输入邮箱地址', 'error'); return; }
+            if (!password) { showMessage('🔒 请输入密码', 'error'); return; }
+            if (password.length < 6) { showMessage('🔒 密码至少6位', 'error'); return; }
 
-            btn.disabled = false;
-            btn.innerHTML = '登录';
+            // 显示加载状态
+            setLoading(true);
 
-            if (error) {
-                showMessage(error.message, 'error');
-                return;
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (error) {
+                    // 处理特定错误
+                    if (error.message.includes('Invalid login credentials')) {
+                        showMessage('❌ 邮箱或密码错误，请重新输入', 'error');
+                    } else if (error.message.includes('Email not confirmed')) {
+                        showMessage('📧 请先验证邮箱（查收垃圾邮件箱）', 'info');
+                    } else if (error.message.includes('rate limit')) {
+                        showMessage('⏳ 请求过于频繁，请等待60秒后再试', 'error');
+                        startCooldown(60);
+                    } else {
+                        showMessage('❌ ' + error.message, 'error');
+                    }
+                    setLoading(false);
+                    return;
+                }
+
+                // 登录成功
+                showMessage('✅ 登录成功！正在跳转...', 'success');
+                setLoading(false);
+
+                // 延迟跳转，让用户看到成功提示
+                setTimeout(() => {
+                    window.location.href = '/dashboard/';
+                }, 800);
+
+            } catch (err) {
+                showMessage('⚠️ 网络错误，请稍后重试', 'error');
+                setLoading(false);
             }
-
-            showMessage('✅ 登录成功！正在跳转...', 'success');
-            setTimeout(() => window.location.href = '/dashboard/', 800);
         }
 
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Enter') handleLogin();
+        // 事件绑定
+        loginBtn.addEventListener('click', handleLogin);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !loginBtn.disabled) {
+                handleLogin();
+            }
         });
 
+        // 输入框清空消息
+        loginEmail.addEventListener('input', hideMessage);
+        loginPassword.addEventListener('input', hideMessage);
+
+        // 检查是否已登录
         (async function() {
             const { data } = await supabase.auth.getSession();
-            if (data.session) window.location.href = '/dashboard/';
+            if (data.session) {
+                window.location.href = '/dashboard/';
+            }
         })();
     </script>
 </body>
