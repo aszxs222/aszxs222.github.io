@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录 · ASZXS</title>
+    <title>注册 · ASZXS</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         * {
@@ -28,8 +28,18 @@
             border: 1px solid #2a2a4a;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
         }
+        .back {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.85em;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .back:hover {
+            color: #fff;
+        }
         .logo {
-            font-size: 2.4em;
+            font-size: 2em;
             font-weight: 800;
             text-align: center;
             background: linear-gradient(135deg, #a78bfa, #f472b6);
@@ -107,12 +117,6 @@
             display: block;
             border: 1px solid rgba(0, 255, 0, 0.1);
         }
-        .msg.info {
-            background: rgba(100, 149, 237, 0.1);
-            color: #818cf8;
-            display: block;
-            border: 1px solid rgba(100, 149, 237, 0.15);
-        }
         .loading {
             display: inline-block;
             width: 18px;
@@ -138,29 +142,31 @@
             color: #a78bfa;
             text-decoration: none;
         }
-        .footer a:hover {
-            text-decoration: underline;
-        }
     </style>
 </head>
 <body>
     <div class="card">
+        <a href="/" class="back">← 返回首页</a>
         <div class="logo">⚡ ASZXS</div>
-        <div class="sub">登录你的账户</div>
+        <div class="sub">创建你的账户</div>
 
         <div class="input-group">
             <label>邮箱</label>
-            <input type="email" id="loginEmail" placeholder="your@email.com">
+            <input type="email" id="registerEmail" placeholder="your@email.com">
+        </div>
+        <div class="input-group">
+            <label>用户名</label>
+            <input type="text" id="registerUsername" placeholder="给自己一个昵称">
         </div>
         <div class="input-group">
             <label>密码</label>
-            <input type="password" id="loginPassword" placeholder="至少6位">
+            <input type="password" id="registerPassword" placeholder="至少6位">
         </div>
-        <button class="btn" id="loginBtn" onclick="handleLogin()">登录</button>
+        <button class="btn" id="registerBtn" onclick="handleRegister()">注册</button>
 
         <div id="msg" class="msg"></div>
         <div class="footer">
-            还没有账户？<a href="/register.html">立即注册</a>
+            已有账户？<a href="/login/">去登录</a>
         </div>
     </div>
 
@@ -177,43 +183,47 @@
             msg.style.display = 'block';
         }
 
-        async function handleLogin() {
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            const btn = document.getElementById('loginBtn');
+        async function handleRegister() {
+            const email = document.getElementById('registerEmail').value.trim();
+            const username = document.getElementById('registerUsername').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const btn = document.getElementById('registerBtn');
 
             if (!email || !password) { showMessage('请填写完整', 'error'); return; }
             if (password.length < 6) { showMessage('密码至少6位', 'error'); return; }
 
             btn.disabled = true;
-            btn.innerHTML = '<span class="loading"></span> 登录中';
+            btn.innerHTML = '<span class="loading"></span> 注册中';
 
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            const { error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: { data: { username: username || email.split('@')[0] } }
+            });
 
             btn.disabled = false;
-            btn.innerHTML = '登录';
+            btn.innerHTML = '注册';
 
             if (error) {
-                if (error.message.includes('Email not confirmed')) {
-                    showMessage('⚠️ 请先验证邮箱（查收垃圾箱）', 'info');
+                if (error.message.includes('already registered')) {
+                    showMessage('该邮箱已注册，请直接登录', 'error');
                 } else {
-                    showMessage('❌ ' + error.message, 'error');
+                    showMessage(error.message, 'error');
                 }
                 return;
             }
 
-            showMessage('✅ 登录成功！正在跳转...', 'success');
-            setTimeout(() => window.location.href = '/dashboard.html', 800);
+            showMessage('✅ 注册成功！请查收验证邮件', 'success');
+            setTimeout(() => window.location.href = '/login/', 2000);
         }
 
         document.addEventListener('keydown', e => {
-            if (e.key === 'Enter') handleLogin();
+            if (e.key === 'Enter') handleRegister();
         });
 
-        // 已登录自动跳转
         (async function() {
             const { data } = await supabase.auth.getSession();
-            if (data.session) window.location.href = '/dashboard.html';
+            if (data.session) window.location.href = '/dashboard/';
         })();
     </script>
 </body>

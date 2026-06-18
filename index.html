@@ -1,111 +1,92 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <title>ASZXS 工具集</title>
     <meta charset="UTF-8">
-    <script src="/redirect.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASZXS · 工具集</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0b0b1a;
             min-height: 100vh;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 40px 20px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
-        .container { max-width: 1200px; margin: 0 auto; }
-        h1 {
+        .container {
             text-align: center;
-            color: white;
-            font-size: 3em;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            max-width: 700px;
         }
-        .subtitle {
-            text-align: center;
-            color: rgba(255,255,255,0.9);
-            margin-bottom: 50px;
+        .logo {
+            font-size: 4em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .tagline {
             font-size: 1.2em;
+            color: #888;
+            margin-bottom: 40px;
         }
-        .tools-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
+        .actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
-        .tool-card {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            text-align: center;
-            transition: transform 0.3s, box-shadow 0.3s;
+        .btn {
+            padding: 14px 40px;
+            border: none;
+            border-radius: 16px;
+            font-size: 1em;
+            font-weight: 600;
             cursor: pointer;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        .tool-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-        }
-        .tool-icon { font-size: 4em; margin-bottom: 20px; }
-        .tool-title { font-size: 1.5em; color: #333; margin-bottom: 10px; }
-        .tool-desc { color: #666; margin-bottom: 20px; line-height: 1.5; }
-        .tool-btn {
-            display: inline-block;
-            padding: 10px 30px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
+            transition: 0.3s;
             text-decoration: none;
-            border-radius: 25px;
-            transition: transform 0.3s;
+            display: inline-block;
         }
-        .tool-btn:hover { transform: scale(1.05); }
+        .btn-primary {
+            background: linear-gradient(135deg, #a78bfa, #f472b6);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(167, 139, 250, 0.3);
+        }
+        .btn-outline {
+            background: transparent;
+            color: #aaa;
+            border: 1px solid #2a2a4a;
+        }
+        .btn-outline:hover {
+            background: #1a1a35;
+            color: #fff;
+        }
         .footer {
-            text-align: center;
             margin-top: 60px;
-            color: rgba(255,255,255,0.8);
+            color: #333;
+            font-size: 0.8em;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🛠️ ASZXS 工具集</h1>
-        <p class="subtitle">免费在线工具，所有功能在本地运行，保护隐私</p>
-        
-<div class="tools-grid">
-    <div class="tool-card">
-        <div class="tool-icon">🎵</div>
-        <h2 class="tool-title">高级音乐转换器</h2>
-        <p class="tool-desc">将音频文件（MP3/WAV）转换为ABC乐谱<br>实时频谱可视化，纯本地处理</p>
-        <a href="/music-converter/" class="tool-btn">立即使用 →</a>
+        <div class="logo">⚡ ASZXS</div>
+        <div class="tagline">轻量 · 干净 · 实用的在线工具集</div>
+        <div class="actions">
+            <a href="/login/" class="btn btn-primary">登录</a>
+            <a href="/register/" class="btn btn-outline">注册</a>
+        </div>
+        <div class="footer">© 2026 ASZXS · 所有数据加密存储</div>
     </div>
-    
-    <div class="tool-card">
-        <div class="tool-icon">📊</div>
-        <h2 class="tool-title">文本统计工具</h2>
-        <p class="tool-desc">实时统计字符数、单词数、行数<br>写文章、做作业必备</p>
-        <a href="/text-stats/" class="tool-btn">立即使用 →</a>
-    </div>
-    
-    <div class="tool-card">
-        <div class="tool-icon">⌨️</div>
-        <h2 class="tool-title">打字训练工具</h2>
-        <p class="tool-desc">提高打字速度和准确率<br>实时统计WPM、正确率</p>
-        <a href="/typing-trainer/" class="tool-btn">立即使用 →</a>
-    </div>
-    
-    <div class="tool-card">
-        <div class="tool-icon">🎶</div>
-        <h2 class="tool-title">在线音乐播放器</h2>
-        <p class="tool-desc">在线播放音乐，支持多种格式<br>创建播放列表，享受音乐</p>
-        <a href="/music/" class="tool-btn">立即使用 →</a>
-    </div>
-
-    <div class="tool-card">
-        <div class="tool-icon">🎧</div>
-        <h2 class="tool-title">音乐专区</h2>
-        <p class="tool-desc">探索音乐世界，发现好音乐<br>QQ音乐、网易云音乐资源</p>
-        <a href="/musicmanji/" class="tool-btn">立即使用 →</a>
-    </div>
-</div>
-
-</div>
 </body>
 </html>

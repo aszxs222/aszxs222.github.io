@@ -104,12 +104,21 @@
             border-top: 1px solid #1a1a35;
             margin-top: 60px;
         }
+        .nav .home-link {
+            color: #888;
+            text-decoration: none;
+            font-size: 0.85em;
+        }
+        .nav .home-link:hover {
+            color: #fff;
+        }
     </style>
 </head>
 <body>
     <div class="nav">
         <div class="logo">⚡ ASZXS</div>
         <div class="nav-right">
+            <a href="/" class="home-link">🏠 首页</a>
             <span class="name" id="userName">用户</span>
             <button class="btn-logout" onclick="handleLogout()">退出</button>
         </div>
