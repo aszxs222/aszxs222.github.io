@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 · ASZXS</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0b0b1a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+        }
+        .card {
+            background: #13132a;
+            padding: 48px 40px 40px;
+            border-radius: 32px;
+            width: 380px;
+            border: 1px solid #2a2a4a;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        }
+        .logo {
+            font-size: 2.4em;
+            font-weight: 800;
+            text-align: center;
+            background: linear-gradient(135deg, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+        }
+        .sub {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 28px;
+        }
+        .input-group {
+            margin-bottom: 16px;
+        }
+        .input-group label {
+            display: block;
+            color: #888;
+            font-size: 0.8em;
+            margin-bottom: 4px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px 14px;
+            background: #1a1a35;
+            border: 1px solid #2a2a4a;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 0.95em;
+            outline: none;
+            transition: 0.3s;
+        }
+        .input-group input:focus {
+            border-color: #a78bfa;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #a78bfa, #f472b6);
+            color: #fff;
+            font-weight: 700;
+            font-size: 1em;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(167, 139, 250, 0.3);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .msg {
+            text-align: center;
+            margin-top: 16px;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.85em;
+            display: none;
+        }
+        .msg.error {
+            background: rgba(255, 0, 0, 0.1);
+            color: #f87171;
+            display: block;
+            border: 1px solid rgba(255, 0, 0, 0.15);
+        }
+        .msg.success {
+            background: rgba(0, 255, 0, 0.06);
+            color: #6ee7b7;
+            display: block;
+            border: 1px solid rgba(0, 255, 0, 0.1);
+        }
+        .msg.info {
+            background: rgba(100, 149, 237, 0.1);
+            color: #818cf8;
+            display: block;
+            border: 1px solid rgba(100, 149, 237, 0.15);
+        }
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .footer {
+            text-align: center;
+            color: #444;
+            font-size: 0.75em;
+            margin-top: 20px;
+        }
+        .footer a {
+            color: #a78bfa;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">⚡ ASZXS</div>
+        <div class="sub">登录你的账户</div>
+
+        <div class="input-group">
+            <label>邮箱</label>
+            <input type="email" id="loginEmail" placeholder="your@email.com">
+        </div>
+        <div class="input-group">
+            <label>密码</label>
+            <input type="password" id="loginPassword" placeholder="至少6位">
+        </div>
+        <button class="btn" id="loginBtn" onclick="handleLogin()">登录</button>
+
+        <div id="msg" class="msg"></div>
+        <div class="footer">
+            还没有账户？<a href="/register.html">立即注册</a>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://vdkxbznzzkazzassxydd.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable__Wq6-zuT78CA1wV_on0T7A_v1T1qCch';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const msg = document.getElementById('msg');
+
+        function showMessage(text, type = 'error') {
+            msg.textContent = text;
+            msg.className = `msg ${type}`;
+            msg.style.display = 'block';
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginBtn');
+
+            if (!email || !password) { showMessage('请填写完整', 'error'); return; }
+            if (password.length < 6) { showMessage('密码至少6位', 'error'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> 登录中';
+
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+            btn.disabled = false;
+            btn.innerHTML = '登录';
+
+            if (error) {
+                if (error.message.includes('Email not confirmed')) {
+                    showMessage('⚠️ 请先验证邮箱（查收垃圾箱）', 'info');
+                } else {
+                    showMessage('❌ ' + error.message, 'error');
+                }
+                return;
+            }
+
+            showMessage('✅ 登录成功！正在跳转...', 'success');
+            setTimeout(() => window.location.href = '/dashboard.html', 800);
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter') handleLogin();
+        });
+
+        // 已登录自动跳转
+        (async function() {
+            const { data } = await supabase.auth.getSession();
+            if (data.session) window.location.href = '/dashboard.html';
+        })();
+    </script>
+</body>
+</html>
