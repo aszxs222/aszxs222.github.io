@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!--
+ ============================================================================
+  工具模板 · ASZXS
+ ----------------------------------------------------------------------------
+  新增一个工具只需要 3 步：
+    1) 复制整个 /tools/_template/ 文件夹，改名为你的工具，例如 /tools/my-tool/
+    2) 修改下面 <title> 与页面里的标题 / 说明文字 / 功能逻辑
+    3) 在 /dashboard/index.html 的 .cards 里加一张卡片，链接到 /tools/my-tool/
+  认证相关（登录 / 退出 / view-only 门控）已经写好，无需改动。
+ ============================================================================
+-->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工具模板 · ASZXS</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="/config.js"></script>
+    <script src="/auth.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0b0b1a; min-height: 100vh; color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .nav {
+            background: #13132a; padding: 16px 32px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .logo {
+            font-size: 1.5em; font-weight: 800;
+            background: linear-gradient(135deg, #a78bfa, #f472b6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        .nav-right { display: flex; align-items: center; gap: 16px; }
+        .nav-link { color: #a78bfa; text-decoration: none; font-size: 0.85em; padding: 6px 14px; border: 1px solid #2a2a4a; border-radius: 8px; }
+        .nav-link:hover { background: #1a1a35; color: #fff; }
+        .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #a78bfa, #f472b6); display: flex; align-items: center; justify-content: center; font-weight: 700; }
+        .btn-logout { padding: 6px 16px; border: 1px solid #2a2a4a; border-radius: 8px; background: transparent; color: #888; cursor: pointer; font-size: 0.8em; }
+        .btn-logout:hover { background: #2a2a4a; color: #fff; }
+        .container { max-width: 760px; margin: 0 auto; padding: 56px 24px; }
+        .title { font-size: 2em; margin-bottom: 8px; }
+        .desc { color: #777; margin-bottom: 28px; line-height: 1.6; }
+        .panel { background: #13132a; border: 1px solid #2a2a4a; border-radius: 20px; padding: 28px; }
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 0.95em;
+            background: linear-gradient(135deg, #a78bfa, #f472b6); color: #fff; transition: 0.3s;
+        }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(167,139,250,0.3); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .viewonly-banner {
+            background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.2); color: #93bbfc;
+            border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.9em; line-height: 1.5;
+        }
+        .viewonly-banner a { color: #fff; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/" class="logo">⚡ ASZXS</a>
+        <div class="nav-right" id="userBox">
+            <a href="/dashboard/" class="nav-link">仪表盘</a>
+            <span class="avatar" id="avatar">?</span>
+            <button class="btn-logout" onclick="logout()">退出</button>
+        </div>
+        <div class="nav-right hidden" id="guestBox">
+            <a href="/dashboard/" class="nav-link">仪表盘</a>
+            <a href="/login/" class="nav-link">登录</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="title">🔧 工具标题</div>
+        <div class="desc">在这里写一句话说明这个工具是做什么的。</div>
+
+        <!-- 未登录时显示的 view-only 提示；登录后由 JS 隐藏 -->
+        <div class="viewonly-banner hidden" id="viewOnlyBanner">
+            🔓 当前为「仅查看」模式。部分操作需要 <a href="/login/">登录</a> 后才能使用。
+        </div>
+
+        <div class="panel">
+            <!-- ↓↓↓ 在这里写你的工具内容（输入框 / 按钮 / 结果区 等）↓↓↓ -->
+            <p style="color:#888;">这是模板占位内容。把你的功能写在这里。</p>
+            <button class="btn" id="actionBtn">执行操作（需登录）</button>
+            <!-- ↑↑↑ --------------------------------------------------- ↑↑↑ -->
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        // 初始化：判断登录态，切换导航与 view-only 提示
+        async function init() {
+            currentUser = await getCurrentUser();
+            if (currentUser) {
+                document.getElementById('avatar').textContent = (displayName(currentUser)[0] || '?').toUpperCase();
+                document.getElementById('userBox').classList.remove('hidden');
+                document.getElementById('guestBox').classList.add('hidden');
+            } else {
+                document.getElementById('userBox').classList.add('hidden');
+                document.getElementById('guestBox').classList.remove('hidden');
+                document.getElementById('viewOnlyBanner').classList.remove('hidden');
+            }
+        }
+
+        // 操作门控：未登录时拦截并提示，返回 false 表示本次操作被阻止
+        function requireLogin() {
+            if (currentUser) return true;
+            const banner = document.getElementById('viewOnlyBanner');
+            banner.classList.remove('hidden');
+            banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+
+        // 绑定你的操作按钮：先走 requireLogin()，再执行真实逻辑
+        document.getElementById('actionBtn').addEventListener('click', () => {
+            if (!requireLogin()) return;
+            // TODO: 在这里写登录后才能执行的功能
+            alert('功能已执行（请替换为你的真实逻辑）');
+        });
+
+        init();
+    </script>
+</body>
+</html>

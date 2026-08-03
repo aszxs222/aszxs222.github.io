@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音乐转换器 · ASZXS</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="/config.js"></script>
+    <script src="/auth.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0b0b1a; min-height: 100vh; color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .nav {
+            background: #13132a; padding: 16px 32px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .logo {
+            font-size: 1.5em; font-weight: 800;
+            background: linear-gradient(135deg, #a78bfa, #f472b6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        .nav-right { display: flex; align-items: center; gap: 16px; }
+        .nav-link { color: #a78bfa; text-decoration: none; font-size: 0.85em; padding: 6px 14px; border: 1px solid #2a2a4a; border-radius: 8px; }
+        .nav-link:hover { background: #1a1a35; color: #fff; }
+        .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #a78bfa, #f472b6); display: flex; align-items: center; justify-content: center; font-weight: 700; }
+        .btn-logout { padding: 6px 16px; border: 1px solid #2a2a4a; border-radius: 8px; background: transparent; color: #888; cursor: pointer; font-size: 0.8em; }
+        .btn-logout:hover { background: #2a2a4a; color: #fff; }
+        .container { max-width: 820px; margin: 0 auto; padding: 56px 24px; }
+        .title { font-size: 2em; margin-bottom: 8px; }
+        .desc { color: #777; margin-bottom: 28px; line-height: 1.6; }
+        .viewonly-banner {
+            background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.2); color: #93bbfc;
+            border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.9em; line-height: 1.5;
+        }
+        .viewonly-banner a { color: #fff; }
+        .panel { background: #13132a; border: 1px solid #2a2a4a; border-radius: 20px; padding: 28px; }
+        .row { margin-bottom: 20px; }
+        .row label { display: block; color: #888; font-size: 0.82em; margin-bottom: 8px; }
+        input[type=file] {
+            width: 100%; padding: 12px; background: #1a1a35; border: 1px solid #2a2a4a;
+            border-radius: 12px; color: #ccc; font-size: 0.9em;
+        }
+        select {
+            padding: 10px 12px; background: #1a1a35; border: 1px solid #2a2a4a;
+            border-radius: 10px; color: #fff; font-size: 0.9em;
+        }
+        .controls { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+        .info {
+            margin-top: 18px; padding: 16px; background: #1a1a35; border-radius: 12px;
+            color: #aaa; font-size: 0.88em; line-height: 1.8; display: none;
+        }
+        .info.show { display: block; }
+        .info b { color: #fff; }
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 0.95em;
+            background: linear-gradient(135deg, #a78bfa, #f472b6); color: #fff; transition: 0.3s;
+        }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(167,139,250,0.3); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-ghost { background: transparent; border: 1px solid #2a2a4a; color: #aaa; }
+        .btn-ghost:hover:not(:disabled) { background: #1a1a35; color: #fff; box-shadow: none; }
+        .msg { margin-top: 16px; font-size: 0.85em; min-height: 1.2em; line-height: 1.5; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/" class="logo">⚡ ASZXS</a>
+        <div class="nav-right" id="userBox">
+            <a href="/dashboard/" class="nav-link">仪表盘</a>
+            <span class="avatar" id="avatar">?</span>
+            <button class="btn-logout" onclick="logout()">退出</button>
+        </div>
+        <div class="nav-right hidden" id="guestBox">
+            <a href="/dashboard/" class="nav-link">仪表盘</a>
+            <a href="/login/" class="nav-link">登录</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="title">🎵 音乐转换器</div>
+        <div class="desc">上传音频文件，调整采样率与声道数，在浏览器内重采样并导出为 WAV（文件不会上传到服务器）。</div>
+
+        <div class="viewonly-banner hidden" id="viewOnlyBanner">
+            🔓 当前为「仅查看」模式。可浏览说明与上传文件，但「转换并下载」需 <a href="/login/">登录</a> 后使用。
+        </div>
+
+        <div class="panel">
+            <div class="row">
+                <label>选择音频文件</label>
+                <input type="file" id="fileInput" accept="audio/*">
+            </div>
+
+            <div class="info" id="info"></div>
+
+            <div class="row controls" style="margin-top:18px;">
+                <div>
+                    <label>目标采样率</label>
+                    <select id="sampleRate">
+                        <option value="8000">8000 Hz</option>
+                        <option value="22050">22050 Hz</option>
+                        <option value="44100" selected>44100 Hz</option>
+                        <option value="48000">48000 Hz</option>
+                    </select>
+                </div>
+                <div>
+                    <label>声道</label>
+                    <select id="channels">
+                        <option value="1">单声道 (Mono)</option>
+                        <option value="2" selected>立体声 (Stereo)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row" style="margin-top:8px;">
+                <button class="btn" id="convertBtn">转换并下载 WAV</button>
+                <button class="btn btn-ghost" id="resetBtn">重置</button>
+            </div>
+
+            <div class="msg" id="msg"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let decodedBuffer = null; // 解码后的 AudioBuffer
+
+        const fileInput = document.getElementById('fileInput');
+        const info = document.getElementById('info');
+        const msg = document.getElementById('msg');
+
+        async function init() {
+            currentUser = await getCurrentUser();
+            if (currentUser) {
+                document.getElementById('avatar').textContent = (displayName(currentUser)[0] || '?').toUpperCase();
+                document.getElementById('userBox').classList.remove('hidden');
+                document.getElementById('guestBox').classList.add('hidden');
+            } else {
+                document.getElementById('userBox').classList.add('hidden');
+                document.getElementById('guestBox').classList.remove('hidden');
+                document.getElementById('viewOnlyBanner').classList.remove('hidden');
+            }
+        }
+
+        function requireLogin() {
+            if (currentUser) return true;
+            const banner = document.getElementById('viewOnlyBanner');
+            banner.classList.remove('hidden');
+            banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+
+        function setMsg(text, color) {
+            msg.style.color = color || '#6ee7b7';
+            msg.innerHTML = text;
+        }
+
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files[0];
+            msg.textContent = '';
+            decodedBuffer = null;
+            info.classList.remove('show');
+            if (!file) return;
+
+            try {
+                setMsg('⏳ 正在解码音频…', '#93bbfc');
+                const arrayBuf = await file.arrayBuffer();
+                const AC = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AC();
+                decodedBuffer = await ctx.decodeAudioData(arrayBuf);
+                await ctx.close();
+
+                const seconds = decodedBuffer.duration;
+                const mm = Math.floor(seconds / 60);
+                const ss = Math.floor(seconds % 60).toString().padStart(2, '0');
+                info.innerHTML =
+                    `文件名：<b>${file.name}</b><br>` +
+                    `时长：<b>${mm}:${ss}</b><br>` +
+                    `原始采样率：<b>${decodedBuffer.sampleRate} Hz</b><br>` +
+                    `声道数：<b>${decodedBuffer.numberOfChannels}</b>`;
+                info.classList.add('show');
+                setMsg('✅ 解码完成，选择参数后点击「转换并下载 WAV」', '#6ee7b7');
+            } catch (e) {
+                decodedBuffer = null;
+                setMsg('❌ 无法解码该音频文件，请换一个常见格式（如 mp3 / wav / ogg）', '#f87171');
+            }
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            fileInput.value = '';
+            decodedBuffer = null;
+            info.classList.remove('show');
+            msg.textContent = '';
+        });
+
+        document.getElementById('convertBtn').addEventListener('click', async () => {
+            if (!requireLogin()) return;          // 未登录拦截
+            if (!decodedBuffer) { setMsg('请先选择一个音频文件', '#f87171'); return; }
+
+            const targetRate = parseInt(document.getElementById('sampleRate').value, 10);
+            const targetCh = parseInt(document.getElementById('channels').value, 10);
+
+            try {
+                setMsg('⏳ 正在重采样…', '#93bbfc');
+                // 用 OfflineAudioContext 重采样到目标采样率/声道
+                const offline = new OfflineAudioContext(
+                    targetCh,
+                    Math.ceil(decodedBuffer.duration * targetRate),
+                    targetRate
+                );
+                const src = offline.createBufferSource();
+                src.buffer = decodedBuffer;
+                src.connect(offline.destination);
+                src.start();
+                const rendered = await offline.startRendering();
+
+                const blob = audioBufferToWav(rendered);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'converted_' + targetRate + 'Hz_' + (targetCh === 1 ? 'mono' : 'stereo') + '.wav';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+
+                setMsg('✅ 转换完成，已开始下载', '#6ee7b7');
+            } catch (e) {
+                setMsg('❌ 转换失败：' + e.message, '#f87171');
+            }
+        });
+
+        // AudioBuffer → 16-bit PCM WAV Blob
+        function audioBufferToWav(buffer) {
+            const numCh = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const numFrames = buffer.length;
+            const bytesPerSample = 2;
+            const blockAlign = numCh * bytesPerSample;
+            const dataSize = numFrames * blockAlign;
+            const ab = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(ab);
+
+            const writeStr = (offset, str) => {
+                for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+            };
+
+            writeStr(0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            writeStr(8, 'WAVE');
+            writeStr(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);            // PCM
+            view.setUint16(22, numCh, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * blockAlign, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, 16, true);           // bits per sample
+            writeStr(36, 'data');
+            view.setUint32(40, dataSize, true);
+
+            const channels = [];
+            for (let c = 0; c < numCh; c++) channels.push(buffer.getChannelData(c));
+
+            let offset = 44;
+            for (let i = 0; i < numFrames; i++) {
+                for (let c = 0; c < numCh; c++) {
+                    let s = Math.max(-1, Math.min(1, channels[c][i]));
+                    s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                    view.setInt16(offset, s, true);
+                    offset += 2;
+                }
+            }
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        init();
+    </script>
+</body>
+</html>

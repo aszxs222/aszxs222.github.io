@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本统计 · ASZXS</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="/config.js"></script>
+    <script src="/auth.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0b0b1a; min-height: 100vh; color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .nav {
+            background: #13132a; padding: 16px 32px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .logo {
+            font-size: 1.5em; font-weight: 800;
+            background: linear-gradient(135deg, #a78bfa, #f472b6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        .nav-right { display: flex; align-items: center; gap: 16px; }
+        .nav-link { color: #a78bfa; text-decoration: none; font-size: 0.85em; padding: 6px 14px; border: 1px solid #2a2a4a; border-radius: 8px; }
+        .nav-link:hover { background: #1a1a35; color: #fff; }
+        .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #a78bfa, #f472b6); display: flex; align-items: center; justify-content: center; font-weight: 700; }
+        .btn-logout { padding: 6px 16px; border: 1px solid #2a2a4a; border-radius: 8px; background: transparent; color: #888; cursor: pointer; font-size: 0.8em; }
+        .btn-logout:hover { background: #2a2a4a; color: #fff; }
+        .container { max-width: 820px; margin: 0 auto; padding: 56px 24px; }
+        .title { font-size: 2em; margin-bottom: 8px; }
+        .desc { color: #777; margin-bottom: 28px; line-height: 1.6; }
+        .viewonly-banner {
+            background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.2); color: #93bbfc;
+            border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.9em; line-height: 1.5;
+        }
+        .viewonly-banner a { color: #fff; }
+        textarea {
+            width: 100%; min-height: 220px; resize: vertical; padding: 16px;
+            background: #1a1a35; border: 1px solid #2a2a4a; border-radius: 14px; color: #fff;
+            font-size: 1em; line-height: 1.6; outline: none; font-family: inherit;
+        }
+        textarea:focus { border-color: #a78bfa; }
+        .stats {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 14px; margin-top: 22px;
+        }
+        .stat {
+            background: #13132a; border: 1px solid #2a2a4a; border-radius: 14px; padding: 18px;
+        }
+        .stat .num { font-size: 1.8em; font-weight: 800; background: linear-gradient(135deg, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .stat .label { color: #777; font-size: 0.82em; margin-top: 4px; }
+        .actions { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; }
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 0.95em;
+            background: linear-gradient(135deg, #a78bfa, #f472b6); color: #fff; transition: 0.3s;
+        }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(167,139,250,0.3); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-ghost { background: transparent; border: 1px solid #2a2a4a; color: #aaa; }
+        .btn-ghost:hover:not(:disabled) { background: #1a1a35; color: #fff; box-shadow: none; }
+        .msg { margin-top: 14px; font-size: 0.85em; color: #6ee7b7; min-height: 1.2em; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/" class="logo">⚡ ASZXS</a>
+        <div class="nav-right" id="userBox">
+            <a href="/dashboard/" class="nav-link">仪表盘</a>
+            <span class="avatar" id="avatar">?</span>
+            <button class="btn-logout" onclick="logout()">退出</button>
+        </div>
+        <div class="nav-right hidden" id="guestBox">
+            <a href="/dashboard/" class="nav-link">仪表盘</a>
+            <a href="/login/" class="nav-link">登录</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="title">📝 文本统计</div>
+        <div class="desc">在下方输入或粘贴文本，实时统计字符、词数、行数与字节数。</div>
+
+        <div class="viewonly-banner hidden" id="viewOnlyBanner">
+            🔓 当前为「仅查看」模式。统计结果可自由浏览，「复制结果」需 <a href="/login/">登录</a> 后使用。
+        </div>
+
+        <textarea id="input" placeholder="在这里输入或粘贴文本……"></textarea>
+
+        <div class="stats">
+            <div class="stat"><div class="num" id="sCharsTotal">0</div><div class="label">字符数（含空格）</div></div>
+            <div class="stat"><div class="num" id="sCharsNoSpace">0</div><div class="label">字符数（不含空格）</div></div>
+            <div class="stat"><div class="num" id="sWords">0</div><div class="label">词数</div></div>
+            <div class="stat"><div class="num" id="sLines">0</div><div class="label">行数</div></div>
+            <div class="stat"><div class="num" id="sBytes">0</div><div class="label">字节数 (UTF-8)</div></div>
+        </div>
+
+        <div class="actions">
+            <button class="btn" id="copyBtn">复制结果</button>
+            <button class="btn btn-ghost" id="clearBtn">清空</button>
+        </div>
+        <div class="msg" id="msg"></div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        const input = document.getElementById('input');
+        const msg = document.getElementById('msg');
+
+        async function init() {
+            currentUser = await getCurrentUser();
+            if (currentUser) {
+                document.getElementById('avatar').textContent = (displayName(currentUser)[0] || '?').toUpperCase();
+                document.getElementById('userBox').classList.remove('hidden');
+                document.getElementById('guestBox').classList.add('hidden');
+            } else {
+                document.getElementById('userBox').classList.add('hidden');
+                document.getElementById('guestBox').classList.remove('hidden');
+                document.getElementById('viewOnlyBanner').classList.remove('hidden');
+            }
+        }
+
+        function requireLogin() {
+            if (currentUser) return true;
+            const banner = document.getElementById('viewOnlyBanner');
+            banner.classList.remove('hidden');
+            banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+
+        function update() {
+            const text = input.value;
+            const charsTotal = text.length;
+            const charsNoSpace = text.replace(/\s/g, '').length;
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const lines = text === '' ? 0 : text.split('\n').length;
+            const bytes = new TextEncoder().encode(text).length;
+
+            document.getElementById('sCharsTotal').textContent = charsTotal;
+            document.getElementById('sCharsNoSpace').textContent = charsNoSpace;
+            document.getElementById('sWords').textContent = words;
+            document.getElementById('sLines').textContent = lines;
+            document.getElementById('sBytes').textContent = bytes;
+        }
+
+        input.addEventListener('input', update);
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            input.value = '';
+            update();
+            msg.textContent = '';
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            if (!requireLogin()) return; // 未登录拦截
+            const text = input.value;
+            if (!text.trim()) { msg.style.color = '#f87171'; msg.textContent = '没有可复制的内容'; return; }
+            const summary =
+                `字符数（含空格）：${text.length}\n` +
+                `字符数（不含空格）：${text.replace(/\s/g, '').length}\n` +
+                `词数：${text.trim() ? text.trim().split(/\s+/).length : 0}\n` +
+                `行数：${text === '' ? 0 : text.split('\n').length}\n` +
+                `字节数：${new TextEncoder().encode(text).length}`;
+            navigator.clipboard.writeText(summary).then(() => {
+                msg.style.color = '#6ee7b7';
+                msg.textContent = '✅ 统计结果已复制到剪贴板';
+            }).catch(() => {
+                msg.style.color = '#f87171';
+                msg.textContent = '复制失败，请手动选择文本';
+            });
+        });
+
+        update();
+        init();
+    </script>
+</body>
+</html>

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>注册 · ASZXS</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="/config.js"></script>
+    <script src="/auth.js"></script>
     <style>
         * {
             margin: 0;
@@ -193,10 +195,6 @@
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://vdkxbznzzkazzassxydd.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable__Wq6-zuT78CA1wV_on0T7A_v1T1qCch';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
         const msg = document.getElementById('msg');
         const registerBtn = document.getElementById('registerBtn');
         const registerEmail = document.getElementById('registerEmail');
@@ -209,7 +207,7 @@
         let cooldownTimer = null;
 
         function showMessage(text, type = 'error') {
-            msg.textContent = text;
+            msg.innerHTML = text;
             msg.className = `msg ${type}`;
         }
 
@@ -272,13 +270,7 @@
             setLoading(true);
 
             try {
-                const { data, error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: { username: username || email.split('@')[0] }
-                    }
-                });
+                const { data, error } = await register(email, username, password);
 
                 if (error) {
                     // 处理特定错误
@@ -294,10 +286,10 @@
                     return;
                 }
 
-                // 注册成功
+                // 注册成功（邮箱验证开启时不会产生 session，需用户点邮件链接）
                 const userEmail = data.user?.email || email;
                 showMessage(
-                    `✅ 注册成功！验证邮件已发送至 <strong>${userEmail}</strong><br>📬 请查收邮箱（如未收到，请检查垃圾邮件箱）`,
+                    `✅ 注册成功！验证邮件已发送至 <strong>${userEmail}</strong><br>📬 请查收邮箱（如未收到，请检查垃圾邮件箱），验证后即可登录`,
                     'success'
                 );
                 setLoading(false);
@@ -305,7 +297,7 @@
                 // 自动跳转到登录页
                 setTimeout(() => {
                     window.location.href = '/login/';
-                }, 4000);
+                }, 4500);
 
             } catch (err) {
                 showMessage('⚠️ 网络错误，请稍后重试', 'error');
@@ -327,10 +319,9 @@
         registerUsername.addEventListener('input', hideMessage);
         registerPassword.addEventListener('input', hideMessage);
 
-        // 检查是否已登录
+        // 已登录用户访问注册页 → 直接去仪表盘
         (async function() {
-            const { data } = await supabase.auth.getSession();
-            if (data.session) {
+            if (await isLoggedIn()) {
                 window.location.href = '/dashboard/';
             }
         })();

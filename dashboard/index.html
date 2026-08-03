@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>仪表盘 · ASZXS</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="/config.js"></script>
+    <script src="/auth.js"></script>
     <style>
         * {
             margin: 0;
@@ -31,6 +33,7 @@
             background: linear-gradient(135deg, #a78bfa, #f472b6);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            text-decoration: none;
         }
         .nav-right {
             display: flex;
@@ -40,6 +43,18 @@
         .nav-right .name {
             color: #aaa;
             font-size: 0.9em;
+        }
+        .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #a78bfa, #f472b6);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.95em;
         }
         .btn-logout {
             padding: 6px 16px;
@@ -55,15 +70,27 @@
             background: #2a2a4a;
             color: #fff;
         }
+        .nav-link {
+            color: #a78bfa;
+            text-decoration: none;
+            font-size: 0.85em;
+            padding: 6px 14px;
+            border: 1px solid #2a2a4a;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+        .nav-link:hover {
+            background: #1a1a35;
+            color: #fff;
+        }
         .container {
-            max-width: 900px;
+            max-width: 960px;
             margin: 0 auto;
-            padding: 60px 24px;
-            text-align: center;
+            padding: 56px 24px;
         }
         .greeting {
             font-size: 2.2em;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
         .greeting span {
             background: linear-gradient(135deg, #a78bfa, #f472b6);
@@ -73,28 +100,72 @@
         .sub {
             color: #666;
             font-size: 1em;
-            margin-bottom: 48px;
+            margin-bottom: 20px;
         }
-        .empty-state {
-            background: #13132a;
-            border: 2px dashed #2a2a4a;
-            border-radius: 24px;
-            padding: 80px 40px;
-        }
-        .empty-state .icon {
-            font-size: 4em;
-            margin-bottom: 16px;
-            opacity: 0.4;
-        }
-        .empty-state h2 {
-            color: #888;
-            font-weight: 400;
-            font-size: 1.2em;
-        }
-        .empty-state p {
+        .user-meta {
             color: #555;
+            font-size: 0.85em;
+            margin-bottom: 28px;
+        }
+        .guest-banner {
+            background: #13132a;
+            border: 1px solid #2a2a4a;
+            border-radius: 16px;
+            padding: 18px 22px;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .guest-banner .text {
+            color: #aaa;
             font-size: 0.9em;
-            margin-top: 8px;
+        }
+        .guest-banner .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .section-title {
+            color: #888;
+            font-size: 0.95em;
+            margin-bottom: 18px;
+            font-weight: 600;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 18px;
+        }
+        .card {
+            background: #13132a;
+            border: 1px solid #2a2a4a;
+            border-radius: 20px;
+            padding: 26px 24px;
+            text-decoration: none;
+            color: #fff;
+            transition: 0.3s;
+            display: block;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: #a78bfa;
+            box-shadow: 0 14px 40px rgba(167, 139, 250, 0.15);
+        }
+        .card .icon {
+            font-size: 2em;
+            margin-bottom: 12px;
+        }
+        .card .title {
+            font-size: 1.15em;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .card .desc {
+            color: #777;
+            font-size: 0.85em;
+            line-height: 1.5;
         }
         .footer {
             text-align: center;
@@ -104,23 +175,24 @@
             border-top: 1px solid #1a1a35;
             margin-top: 60px;
         }
-        .nav .home-link {
-            color: #888;
-            text-decoration: none;
-            font-size: 0.85em;
-        }
-        .nav .home-link:hover {
-            color: #fff;
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
     <div class="nav">
-        <div class="logo">⚡ ASZXS</div>
-        <div class="nav-right">
-            <a href="/" class="home-link">🏠 首页</a>
+        <a href="/" class="logo">⚡ ASZXS</a>
+        <!-- 已登录时显示 -->
+        <div class="nav-right" id="userBox">
+            <span class="avatar" id="avatar">?</span>
             <span class="name" id="userName">用户</span>
-            <button class="btn-logout" onclick="handleLogout()">退出</button>
+            <button class="btn-logout" onclick="logout()">退出</button>
+        </div>
+        <!-- 未登录时显示 -->
+        <div class="nav-right hidden" id="guestBox">
+            <a href="/login/" class="nav-link">登录</a>
+            <a href="/register/" class="nav-link">注册</a>
         </div>
     </div>
 
@@ -128,12 +200,30 @@
         <div class="greeting">
             👋 你好，<span id="greetingName">朋友</span>
         </div>
-        <div class="sub">欢迎回到你的控制台</div>
+        <div class="sub">欢迎来到你的工具控制台</div>
+        <div class="user-meta hidden" id="userEmail"></div>
 
-        <div class="empty-state">
-            <div class="icon">🛠️</div>
-            <h2>这里暂时是空的</h2>
-            <p>工具正在开发中，敬请期待</p>
+        <!-- 未登录提示（view-only 入口仍可用）-->
+        <div class="guest-banner hidden" id="guestBanner">
+            <div class="text">🔓 登录后即可使用全部工具功能；现在也可以浏览，但部分操作需登录。</div>
+            <div class="actions">
+                <a href="/login/" class="nav-link">登录</a>
+                <a href="/register/" class="nav-link">注册</a>
+            </div>
+        </div>
+
+        <div class="section-title">🛠️ 可用工具</div>
+        <div class="cards">
+            <a class="card" href="/tools/text-stats/">
+                <div class="icon">📝</div>
+                <div class="title">文本统计</div>
+                <div class="desc">实时统计字符数、词数、行数与字节数，写作排版好帮手。</div>
+            </a>
+            <a class="card" href="/tools/music-converter/">
+                <div class="icon">🎵</div>
+                <div class="title">音乐转换器</div>
+                <div class="desc">上传音频文件，调整采样率与声道，导出为 WAV。</div>
+            </a>
         </div>
 
         <div class="footer">
@@ -142,28 +232,35 @@
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://vdkxbznzzkazzassxydd.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable__Wq6-zuT78CA1wV_on0T7A_v1T1qCch';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        async function init() {
+            const user = await getCurrentUser();
 
-        async function checkAuth() {
-            const { data } = await supabase.auth.getSession();
-            if (!data.session) {
-                window.location.href = '/';
-                return;
+            if (user) {
+                const name = displayName(user);
+                const initial = (name[0] || '?').toUpperCase();
+
+                document.getElementById('greetingName').textContent = name;
+                document.getElementById('userName').textContent = name;
+                document.getElementById('avatar').textContent = initial;
+
+                const emailEl = document.getElementById('userEmail');
+                if (user.email) {
+                    emailEl.textContent = '📧 ' + user.email;
+                    emailEl.classList.remove('hidden');
+                }
+
+                document.getElementById('userBox').classList.remove('hidden');
+                document.getElementById('guestBox').classList.add('hidden');
+                document.getElementById('guestBanner').classList.add('hidden');
+            } else {
+                document.getElementById('greetingName').textContent = '朋友';
+                document.getElementById('userBox').classList.add('hidden');
+                document.getElementById('guestBox').classList.remove('hidden');
+                document.getElementById('guestBanner').classList.remove('hidden');
             }
-            const user = data.session.user;
-            const name = user.user_metadata?.username || user.email?.split('@')[0] || '用户';
-            document.getElementById('greetingName').textContent = name;
-            document.getElementById('userName').textContent = name;
         }
 
-        async function handleLogout() {
-            await supabase.auth.signOut();
-            window.location.href = '/';
-        }
-
-        checkAuth();
+        init();
     </script>
 </body>
 </html>
